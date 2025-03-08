@@ -1,0 +1,344 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Harish</title>
+    <link>//localhost:1313/posts/</link>
+    <description>Recent content in Posts on Harish</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en</language>
+    <lastBuildDate>Mon, 11 Mar 2019 00:00:00 +0000</lastBuildDate><atom:link href="//localhost:1313/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>A tale of typos✍️, Tree Sitter🌳, and finally an LSP (Part-1)</title>
+      <link>//localhost:1313/posts/a-tale-of-typos-tree-sitter-p1/</link>
+      <pubDate>Mon, 11 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>//localhost:1313/posts/a-tale-of-typos-tree-sitter-p1/</guid>
+      <description>&lt;p&gt;A few months back I was asked to write an ETL (Extract, Transform, Load) framework at work, where I could run all my ETL jobs uniformly using a single codebase. I wanted to write some Python and this was a great opportunity to do it. Here is a tale of how a brief expedition of Python, and a quest to write config-driven code coupled with numerous typos, led me to tree-sitter, building a code-gen CLI, and a custom LSP.&lt;/p&gt;</description>
+      <content>&lt;p&gt;A few months back I was asked to write an ETL (Extract, Transform, Load) framework at work, where I could run all my ETL jobs uniformly using a single codebase. I wanted to write some Python and this was a great opportunity to do it. Here is a tale of how a brief expedition of Python, and a quest to write config-driven code coupled with numerous typos, led me to tree-sitter, building a code-gen CLI, and a custom LSP.&lt;/p&gt;
+&lt;h3 id=&#34;early-steps&#34;&gt;Early Steps&lt;/h3&gt;
+&lt;p&gt;So when the opportunity presented itself, I was enthused, I had a twinkle in my eye to write something from scratch because my previous attempts to do the same were an abject failure but that&amp;rsquo;s neither here nor there. One thing that did catch my eye was a design pattern my manager told me to implement, &amp;ldquo;Chain of Responsibility&amp;rdquo;. I was intrigued and wrote a small little version of my framework overnight to which I received a &amp;ldquo;lol&amp;rdquo; on my PR. Needless to say, it wasn&amp;rsquo;t a good PR, so I decided to work a little harder to get it right.&lt;/p&gt;
+&lt;p&gt;After a week of &amp;ldquo;Factory Pattern&amp;rdquo;, &amp;ldquo;Builder Pattern&amp;rdquo; and &amp;ldquo;Singleton Classes&amp;rdquo;, I raised another PR to which I received relatively good feedback from my manager (I think). I was happy and ready to call it a day but he told me to make the code config-driven. The point was that you write the actual driver code or your application logic and manage all the transformations, fallback values, and configurations from a single source file. Initially, this idea did not amuse me but when he casually slipped in the fact that he had done it, my competitive side wanted to do it at any cost and impress him (akshually the idea was a JDSL-like config store but Tom is a genius, not me).&lt;/p&gt;
+&lt;h3 id=&#34;the-config-driven-struggle&#34;&gt;The Config-Driven Struggle&lt;/h3&gt;
+&lt;p&gt;So I started with the &amp;ldquo;ini&amp;rdquo; file format, which is used by another cool tool &amp;ldquo;pgLoader&amp;rdquo; (a story for another day). I wanted to use &amp;ldquo;JSON&amp;rdquo; (correct pronunciation) like a regular human being but the thought of trailing commas and the inability to use comments were factors in my decision to not use it. I could have used &amp;ldquo;YAML&amp;rdquo; but I am happy I chose &amp;ldquo;ini&amp;rdquo; (a cool followup to this point later in this story).&lt;/p&gt;
+&lt;p&gt;The idea of parsing any configuration file is that you convert these chunks of structured key-value pairs into a data structure that can then be globally accessed. Neat proposition, but man is it emotionally bruising to get it right. How does your parsing library coerce the config types without you doing it? How do you parse nested configurations? How do you provide default values? And most importantly, &amp;ldquo;HOW DO I FIND OUT IF I MADE A SPELLING MISTAKE? IS IT MY CODE, IS IT MY CONFIG?&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;Another issue with config-driven code is, that you end up writing factory classes to map the configs to classes or files and these just end up being a never-ending list of the same configs that you need to copy over to your factory. Not an interesting prospect.&lt;/p&gt;
+&lt;h3 id=&#34;grug-love-tool&#34;&gt;Grug Love Tool&lt;/h3&gt;
+&lt;p&gt;Grug love tool. Tool and control passion separate grug from dinosaurs! Tool allows grug brain to create code that would not be possible otherwise by doing the thinking for grug. Code completion in IDE allows grug not to have remembered all API, very important!&lt;/p&gt;
+&lt;p&gt;Me being grug developer, so grug decide to build developer tools so grug no make mistakes.&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;//localhost:1313/img/grug_developer.png&#34;  alt=&#34;Accurate representation of myself&#34;   /&gt;
+    
+      &lt;figcaption class=&#34;center&#34; &gt;Accurate representation of myself&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;h3 id=&#34;tackling-code-gen-and-typos&#34;&gt;Tackling Code Gen and Typos&lt;/h3&gt;
+&lt;p&gt;Let&amp;rsquo;s tackle the problems of the tooling (Code gen and typos). I was playing around with some CLI tooling to do some code gen so that you and I, the 10x developer, do not need to write boilerplate code. Suffice it to say this took me more time than it would have taken me to write 1000 lines of config but that&amp;rsquo;s cliche, ain&amp;rsquo;t it? Let&amp;rsquo;s get to some code shall we?&lt;/p&gt;
+&lt;h3 id=&#34;configuration-file-example&#34;&gt;Configuration File Example&lt;/h3&gt;
+&lt;p&gt;This is what my config file looks like:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-ini&#34; data-lang=&#34;ini&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;[job_options] # this is a section&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;jobs&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;demo #this is an option&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;[demo]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;steps&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;extract_json,transform_json,load_json&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;[load_json]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;type&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;loader&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;directory&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;output&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;filename&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;/output/demo.json&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;[transform_json]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;type&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;transform&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;columns&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;foo,bar,baz&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;delimiter&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;,&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;[extract_json]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;type&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;extractor&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;directory&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;input&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;filename&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;demo.csv&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This is what my folder structure looks like:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;config
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; - settings.local.ini
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; - settings.dev.ini
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;factory
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; - extractor_factory.py
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; - loader_factory.py
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;jobs
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; - extractors
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    - extract_json_job.py
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; - loaders
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    - load_json_job.py
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This is what my factory code looks like:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;from&lt;/span&gt; factory.factory_interface &lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; Factory
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;from&lt;/span&gt; jobs.extractors.extract_json_job &lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; ExtractJsonJob
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;class&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;ExtractorFactory&lt;/span&gt;(Factory):
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;def&lt;/span&gt; __init__(self):
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  super()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;__init__()
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;create&lt;/span&gt;(self, mode, &lt;span style=&#34;color:#f92672&#34;&gt;**&lt;/span&gt;kwargs):
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  merged_config &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; self&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;get_config(mode)
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#75715e&#34;&gt;#Autogenerated File Section. Do not Edit this file&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#66d9ef&#34;&gt;match&lt;/span&gt; mode:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;case&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;extract_json&amp;#34;&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; ExtractJsonJob(config&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;merged_config)
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;case&lt;/span&gt; _:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;raise&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;ValueError&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Invalid extract type&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;let&amp;rsquo;s say, I want to add a new extractor option, let&amp;rsquo;s say &amp;ldquo;extract_mssql&amp;rdquo;. I would have to go to my config file add a new option, then go to my factory class and add a new case statement. Not only that, but I would also need to add and update my file structure, the place where the actual code for this would be written, i.e. in the jobs/extractors folder. This is a tedious task, so I wrote a small little CLI ( akshually was very long ) which would do the above steps for you.&lt;/p&gt;
+&lt;p&gt;The command to do this would be:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;forge create_step --type extractor --name extract_mssql
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;This would do the necessary boilerplate setup. (Demo Video Link at the end of the article). So one might say &amp;ldquo;Well the file naming would follow some naming convention, what if I don&amp;rsquo;t want to adhere to it and just name my file the way I want&amp;rdquo;. The CLI also takes this fact into account. You see, a dumb CLI tool would look at all the files, pick the name of the step from the file URI, store it in a local SQLite database, and bam, write it to the factory right? Wrong!. This is when &amp;ldquo;tree-sitter&amp;rdquo; popped into my head.&lt;/p&gt;
+&lt;p&gt;If you have been following along great, if not then let me expound upon the last point using an example. Imagine this is my factory code from earlier.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-python&#34; data-lang=&#34;python&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;from&lt;/span&gt; factory.factory_interface &lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; Factory
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;from&lt;/span&gt; jobs.extractors.extract_json_job &lt;span style=&#34;color:#f92672&#34;&gt;import&lt;/span&gt; ExtractJsonJob &lt;span style=&#34;color:#75715e&#34;&gt;# Actual Path&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;class&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;ExtractorFactory&lt;/span&gt;(Factory):
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;def&lt;/span&gt; __init__(self):
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  super()&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;__init__()
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;def&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;create&lt;/span&gt;(self, mode, &lt;span style=&#34;color:#f92672&#34;&gt;**&lt;/span&gt;kwargs):
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  merged_config &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; self&lt;span style=&#34;color:#f92672&#34;&gt;.&lt;/span&gt;get_config(mode)
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#75715e&#34;&gt;#Autogenerated File Section. Do not Edit this file&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  &lt;span style=&#34;color:#66d9ef&#34;&gt;match&lt;/span&gt; mode:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;case&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;extract_json&amp;#34;&lt;/span&gt;:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;return&lt;/span&gt; ExtractJsonJob(config&lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt;merged_config) &lt;span style=&#34;color:#75715e&#34;&gt;# Actual Option&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;   &lt;span style=&#34;color:#66d9ef&#34;&gt;case&lt;/span&gt; _:
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#66d9ef&#34;&gt;raise&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;ValueError&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;Invalid extract type&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;Now when the CLI generates a new file, it needs to know that this maps to a file. If a user decides to change this mapping then he/she would manually rename these files and update the factory accordingly. So in practice during my code gen process, I need to scan the state of the factory file, and then make a decision to &lt;strong&gt;partially update&lt;/strong&gt; it.&lt;/p&gt;
+&lt;p&gt;So the question arises, how do we know where to place the option, how would we know which line to place it at, do we read the file line by line, do we use regex to match the case statement, how can we incrementally update the file at multiple places? The answer is tree-sitter.&lt;/p&gt;
+&lt;p&gt;Tree Sitter is a parser generator that generates an AST or an Abstract Syntax Tree of your program.This is an abridged version of AST of my factory code:&lt;/p&gt;
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code class=&#34;language-Auto&#34; data-lang=&#34;Auto&#34;&gt;module [0, 0] - [17, 0]
+  import_from_statement [0, 0] - [0, 45]
+    module_name: dotted_name [0, 5] - [0, 30]
+      identifier [0, 5] - [0, 12]
+      identifier [0, 13] - [0, 30]
+    name: dotted_name [0, 38] - [0, 45]
+      identifier [0, 38] - [0, 45]  
+
+ --- MARKER - 1 NEW IMPORT STATEMENT HERE ----
+
+  comment [1, 60] - [1, 73]
+  class_definition [3, 0] - [16, 44]
+    name: identifier [3, 6] - [3, 22]
+    superclasses: argument_list [3, 22] - [3, 31]
+      identifier [3, 23] - [3, 30]
+    body: ...
+        match_statement [10, 2] - [14, 44]
+            subject: identifier [10, 8] - [10, 12]
+            body: block [10, 13] - [14, 44]
+              alternative: case_clause [11, 3] - [12, 63]
+                case_pattern [11, 8] - [11, 22]
+                  string [11, 8] - [11, 22]
+                    string_start [11, 8] - [11, 9]
+                    string_content [11, 9] - [11, 21]
+                    string_end [11, 21] - [11, 22]
+                consequence: block [12, 4] - [12, 63]
+                  return_statement [12, 4] - [12, 47]
+                    call [12, 11] - [12, 47]
+                      function: identifier [12, 11] - [12, 25]
+                      arguments: argument_list [12, 25] - [12, 47]
+                        keyword_argument [12, 26] - [12, 46]
+                          name: identifier [12, 26] - [12, 32]
+                          value: identifier [12, 33] - [12, 46]
+                  comment [12, 48] - [12, 63]
+
+              --- MARKER -2 INSERT THE NEW STEP/OPTION HERE ----
+
+              alternative: case_clause [13, 3] - [14, 44]
+                case_pattern [13, 8] - [13, 9]
+                consequence: block [14, 4] - [14, 44]
+                  raise_statement [14, 4] - [14, 44]
+                    call [14, 10] - [14, 44]
+                      function: identifier [14, 10] - [14, 20]
+                      arguments: argument_list [14, 20] - [14, 44]
+                        string [14, 21] - [14, 43]
+                          string_start [14, 21] - [14, 22]
+                          string_content [14, 22] - [14, 42]
+                          string_end [14, 42] - [14, 43]
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;We don&amp;rsquo;t need to go into specifics of what this tree means but, you can think of it as generating a structure that gives you context on the lexical tokens present in your program. It then provides you an interface to pluck out these tokens using a query language and voila, you have your coordinates where you can incrementally update your file (as seen from the markers placed in the example AST snippet). Play around with the tree-sitter playground here.&lt;/p&gt;
+&lt;p&gt;This way, I can preserve the changes the user has made to their factory, whilst still fulfilling the code generation aspect of it. So this solves the boilerplate problem. But what about the next issue at hand, the typos? We will cover that in part 2 of this article. And yes, I reveal why the &amp;ldquo;ini&amp;rdquo; file was a nice choice in it as well.&lt;/p&gt;
+&lt;p&gt;Hope you found this article engaging and exciting. If you liked it please do give some clappies, star the GitHub repo be a friend, and tell a friend, until then see you in the next installation of &amp;ldquo;Tools, Terminal and TCP&amp;rdquo;.&lt;/p&gt;
+&lt;p&gt;Video Demo: &lt;a href=&#34;https://harish876.github.io/forge/cli_demo.mp4&#34;&gt;Link&lt;/a&gt;
+&lt;!-- raw HTML omitted --&gt;
+GitHub Link: &lt;a href=&#34;https://github.com/harish876/forge/&#34;&gt;Forge ETL&lt;/a&gt;&lt;/p&gt;
+</content>
+    </item>
+    
+    <item>
+      <title>A tale of typos✍️, Tree Sitter🌳, and finally an LSP (Part-2)</title>
+      <link>//localhost:1313/posts/a-tale-of-typos-tree-sitter-p2/</link>
+      <pubDate>Mon, 11 Mar 2019 00:00:00 +0000</pubDate>
+      
+      <guid>//localhost:1313/posts/a-tale-of-typos-tree-sitter-p2/</guid>
+      <description>&lt;p&gt;A few months back I was asked to write an ETL (Extract, Transform, Load) framework at work, where I could run all my ETL jobs uniformly using a single codebase. We covered a simple code-gen CLI for this in the last blog. In this one, we dive deeper into an LSP and Advanced Tree Sitter Features.&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;//localhost:1313/img/tree-sitter.jpg&#34;  alt=&#34;Thumbnail Courtesy https://www.youtube.com/watch?v=1K1bNTOQi5g&#34;   /&gt;
+    
+      &lt;figcaption class=&#34;center&#34; &gt;Thumbnail Courtesy https://www.youtube.com/watch?v=1K1bNTOQi5g&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;h3 id=&#34;digging-deep&#34;&gt;Digging Deep&lt;/h3&gt;
+&lt;p&gt;Alright, so now that we know what tree-sitter does at a basic level, let&amp;rsquo;s dive deeper into what else we can do with it. If you haven&amp;rsquo;t given Part 1 a read, then I would highly suggest doing so, it will give you so much context. The problem at hand right now is typos and spelling mistakes and these often tend to be the silliest class of errors. Personally, these errors are especially difficult to debug when your config file starts to grow beyond a certain limit where a simple eye scan doesn&amp;rsquo;t yield a quick fix.&lt;/p&gt;</description>
+      <content>&lt;p&gt;A few months back I was asked to write an ETL (Extract, Transform, Load) framework at work, where I could run all my ETL jobs uniformly using a single codebase. We covered a simple code-gen CLI for this in the last blog. In this one, we dive deeper into an LSP and Advanced Tree Sitter Features.&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;//localhost:1313/img/tree-sitter.jpg&#34;  alt=&#34;Thumbnail Courtesy https://www.youtube.com/watch?v=1K1bNTOQi5g&#34;   /&gt;
+    
+      &lt;figcaption class=&#34;center&#34; &gt;Thumbnail Courtesy https://www.youtube.com/watch?v=1K1bNTOQi5g&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;h3 id=&#34;digging-deep&#34;&gt;Digging Deep&lt;/h3&gt;
+&lt;p&gt;Alright, so now that we know what tree-sitter does at a basic level, let&amp;rsquo;s dive deeper into what else we can do with it. If you haven&amp;rsquo;t given Part 1 a read, then I would highly suggest doing so, it will give you so much context. The problem at hand right now is typos and spelling mistakes and these often tend to be the silliest class of errors. Personally, these errors are especially difficult to debug when your config file starts to grow beyond a certain limit where a simple eye scan doesn&amp;rsquo;t yield a quick fix.&lt;/p&gt;
+&lt;p&gt;So what could we do to solve this issue? Well if we could have some IntelliSense on our config file then we can know which sections are present, and which settings are present in each section. A lot of people have a misconception that VSCode or any IDE has IntelliSense built in and it is VSCode that provides you these neat features. All VSCode does is act as a client; think of a client-server architecture where VSCode is the front-end, and the actual IntelliSense and other language features come from a server. This is the Language Server and the protocol which the client and server use to communicate is called the Language Server Protocol.&lt;/p&gt;
+&lt;h3 id=&#34;lsp-huh-tell-me-more-about-it&#34;&gt;LSP huh. Tell me more about it!&lt;/h3&gt;
+&lt;p&gt;You can find the actual specifications for LSPs here. Some popular LSP&amp;rsquo;s are gopls, pylance, TS Server, etc. So just like you could build your client-server application, we could technically build our own LSP Server and make a VSCode client, so that our text editor, knows how to communicate with our server. From here on I will refer to the LSP Server as LSP itself.&lt;/p&gt;
+&lt;p&gt;So when we are on the Web, our mode of communication between the client and server would be some version of HTTP. But here both our client and server run locally, so we wouldn&amp;rsquo;t be using HTTP for this. We could, but LSPs use a few protocols. This is what the VSCode client, lists as the possible options.&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-typescript&#34; data-lang=&#34;typescript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#66d9ef&#34;&gt;export&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;declare&lt;/span&gt; &lt;span style=&#34;color:#66d9ef&#34;&gt;enum&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;TransportKind&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;stdio&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;0&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;ipc&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;1&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;pipe&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;2&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;socket&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#ae81ff&#34;&gt;3&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;p&gt;So we can see here that LSPs could either use the standard input and output, IPC (interprocess communication), or receive commands that are piped in sockets. For the sake of simplicity, we can use the standard input and output, which is what I decided to go ahead with.&lt;/p&gt;
+&lt;p&gt;We have figured out what the data medium is, but how does the request look like, how does the response look like, and how would function invocations happen remotely? Well, this is where JSON RPC (Remote Procedure Calls) comes into play. For the longest time, I used to think RPCs were exclusive to only Protocol Buffers, packaged as GRPC by Google, but you could use just another serialization or deserialization format with it.
+Alright, now that we know what LSPs are, and how they communicate, we can go into the implementation, the fun stuff.&lt;/p&gt;
+&lt;p&gt;First off, a few resources that got me into this subject were ThePrimeagen&amp;rsquo;s stream where he built an LSP for HTMX, this video from JeffreyChup, and this video from TjDeVries. One could use something like tower-LSP or a go equivalent to get started with writing a language server, but I followed the tutorials and wrote mine from scratch(this was great learning btw).&lt;/p&gt;
+&lt;p&gt;After my brief stint with tree-sitter, I wanted to dive a little deeper into how I could leverage it to build an LSP. It is used extensively in neo-vim for syntax highlighting and source code parsing, so I wanted to use it as well. Let&amp;rsquo;s break down our action items one by one.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;We want textDocument/completion which will give us autocompletion for the options present in a section.&lt;/li&gt;
+&lt;li&gt;We want textDocument/definition which will allow us to click on the option and go directly to its definition.&lt;/li&gt;
+&lt;li&gt;We want textDocument/hover which will provide the actual value for the option in a hover window when we hover over the option.&lt;/li&gt;
+&lt;li&gt;We want to update the document state, textDocument/didChange, and update our AST when we make a code change.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3 id=&#34;impl-project&#34;&gt;Impl Project&lt;/h3&gt;
+&lt;p&gt;Grug love tool. Tool and control passion separate grug from dinosaurs! Tool allows grug brain to create code that would not be possible otherwise by doing the thinking for grug. Code completion in IDE allows grug not to have remembered all API, very important!&lt;/p&gt;
+&lt;p&gt;Me being grug developer, so grug decide to build developer tools so grug no make mistakes.&lt;/p&gt;
+&lt;p&gt;Alright now, let&amp;rsquo;s jump into the implementation. Firstly I want to parse the &amp;ldquo;ini&amp;rdquo; file. Well, I could use some ini parser from the go package ecosystem, (I am using Golang to write the server btw) but I would have to read the file every time I get an update notification from the VSCode client. VSCode sends the modified source code, so I could just parse that, but I am not sure how I could parse a string or a byte array using the existing package.&lt;/p&gt;
+&lt;p&gt;This is where using the &amp;ldquo;ini&amp;rdquo; file was a good choice (not because it was easy, but it took significantly more work but again great learnings). Let&amp;rsquo;s break it down.&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;Tree sitter provides parsers but it also allows parser generation. Now the latter is interesting because you can provide a grammar for any language or DSL and, the tree-sitter generates the parser for that language. Tree sitter comes with parsers for &amp;ldquo;yaml&amp;rdquo; and &amp;ldquo;toml&amp;rdquo; files but not for &amp;ldquo;ini&amp;rdquo; files. So it&amp;rsquo;s time to define the grammar for &amp;ldquo;ini&amp;rdquo; files. Let&amp;rsquo;s look at how we can accomplish this and the methodology I used.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;As per the tree-sitter documentation, to generate a parser, all you need to do is define a grammar.js file and define the language grammar using their DSL. So for an &amp;ldquo;ini&amp;rdquo; file format, this is how the grammar looks like&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-javascript&#34; data-lang=&#34;javascript&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;module&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;exports&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;grammar&lt;/span&gt;({
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;name&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;ini&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;extras&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt; =&amp;gt; [
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;comment&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;_blank&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#e6db74&#34;&gt;/[\t ]/&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    ],
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    &lt;span style=&#34;color:#a6e22e&#34;&gt;rules&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      document&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt; =&amp;gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;seq&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;repeat&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;_blank&lt;/span&gt;),  &lt;span style=&#34;color:#75715e&#34;&gt;// Eat blank lines at top of file.
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;repeat&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;section&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#75715e&#34;&gt;// Section has:
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;      &lt;span style=&#34;color:#75715e&#34;&gt;// - a title
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;      &lt;span style=&#34;color:#75715e&#34;&gt;// - zero or more settings (name=value pairs)
+&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#75715e&#34;&gt;&lt;/span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;section&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt; =&amp;gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;seq&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;section_name&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;repeat&lt;/span&gt;(&lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;setting&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;section_name&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt; =&amp;gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;seq&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;[&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;alias&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;/[^\[\]\n]+/&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;text&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;]&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;\n&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;setting&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt; =&amp;gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;seq&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;alias&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;/[^;#=\s\[]+/&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;setting_name&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;=&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#a6e22e&#34;&gt;alias&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;/[^;#\n]+/&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;setting_value&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;        &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;\n&amp;#39;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;comment&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt; =&amp;gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;seq&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;/[;#]/&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;alias&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;/.*/&lt;/span&gt;, &lt;span style=&#34;color:#a6e22e&#34;&gt;$&lt;/span&gt;.&lt;span style=&#34;color:#a6e22e&#34;&gt;text&lt;/span&gt;), &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;\n&amp;#39;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;      &lt;span style=&#34;color:#a6e22e&#34;&gt;_blank&lt;/span&gt;&lt;span style=&#34;color:#f92672&#34;&gt;:&lt;/span&gt; () =&amp;gt; &lt;span style=&#34;color:#a6e22e&#34;&gt;field&lt;/span&gt;(&lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;blank&amp;#39;&lt;/span&gt;, &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#39;\n&amp;#39;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;    }
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;  });
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;The rules are simple, a section name is enclosed in square brackets&amp;quot;[]&amp;quot;, and each section title is separated from the settings by a new line &amp;ldquo;\n&amp;rdquo;. Each section has settings and the key is to the left of the &amp;ldquo;=&amp;rdquo; sign and the value is to the right of the &amp;ldquo;=&amp;rdquo; sign. The repeat directive implies that there could be multiple sections and each section has multiple settings.&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;After this, we download the tree-sitter CLI and use these commands. The entire code for this can be found &lt;a href=&#34;https://github.com/harish876/tree-sitter-ini/&#34;&gt;here&lt;/a&gt;&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;Luckily tree-sitter generates node, python, rust, and go bindings for our parsers. So I forked the go-tree-sitter-binding repository, and added my newly generated C parser files, and using &amp;ldquo;cgo&amp;rdquo; I now have a parser in Golang to parse &amp;ldquo;ini&amp;rdquo; files. This means I can now parse my &amp;ldquo;ini&amp;rdquo; file incrementally, update it and convert it into an in-memory data structure to provide IntelliSense, sweeet.&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-bash&#34; data-lang=&#34;bash&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tree-sitter generate &lt;span style=&#34;color:#75715e&#34;&gt;# generates the parser&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;tree-sitter playground &lt;span style=&#34;color:#75715e&#34;&gt;#opens up a local playground to test the parser&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;ol start=&#34;3&#34;&gt;
+&lt;li&gt;Alright so now we have a means of parsing the &amp;ldquo;ini&amp;rdquo; file, we already have a Python parser out of the box, so let&amp;rsquo;s start parsing. Now I present before you my grand scheme for preventing typos.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h3 id=&#34;inner-musings&#34;&gt;Inner Musings&lt;/h3&gt;
+&lt;p&gt;&amp;quot; I will parse my python file and get the code pieces where I actually retrive the keys from my config object, ( some context - the central config gets converted to a dictionary of dictionaries and I access each dictionary using the section name ). So when I do config.get(&amp;ldquo;setting_name&amp;rdquo;) right now, I make 1200 typos per file, If I use text completion, I can solve this issue. Plus I can hover on the setting to look at its values and click on it to go to its definition.&amp;quot;&lt;/p&gt;
+&lt;p&gt;This is how we can accomplish this&lt;/p&gt;
+
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;//localhost:1313/img/code-block-p2.png&#34;  alt=&#34;Tree Sitter Capture Blocks color-coded. These are the plucked-out setting names from the AST&#34;   /&gt;
+    
+      &lt;figcaption class=&#34;center&#34; &gt;Tree Sitter Capture Blocks color-coded. These are the plucked-out setting names from the AST&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;pre tabindex=&#34;0&#34;&gt;&lt;code&gt;(
+  (call
+    function: (attribute
+   object: (identifier) @object
+   attribute: (identifier) @method)
+    arguments: (argument_list
+   (string
+     (string_content) @string_content
+   )))
+  (#eq? @object &amp;#34;config&amp;#34;)
+  (#eq? @method &amp;#34;get&amp;#34;)
+   )
+&lt;/code&gt;&lt;/pre&gt;&lt;p&gt;As you can see we get the values inside the config.get(&amp;quot;{setting}&amp;quot;) function call and then go to our LSP to ask for autocompletion values. I won&amp;rsquo;t include every query in this project, but if you are interested, check out the GitHub repository. In practice, this is how my autocompletion looks like:&lt;/p&gt;
+&lt;div class=&#34;highlight&#34;&gt;&lt;pre tabindex=&#34;0&#34; style=&#34;color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;&#34;&gt;&lt;code class=&#34;language-ini&#34; data-lang=&#34;ini&#34;&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;[extract_json] &lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;type&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;extractor &lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;directory&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;input&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style=&#34;display:flex;&#34;&gt;&lt;span&gt;&lt;span style=&#34;color:#a6e22e&#34;&gt;filename&lt;/span&gt; &lt;span style=&#34;color:#f92672&#34;&gt;=&lt;/span&gt; &lt;span style=&#34;color:#e6db74&#34;&gt;&amp;#34;sample.csv&amp;#34;&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;
+  &lt;figure class=&#34;center&#34; &gt;
+    &lt;img src=&#34;//localhost:1313/img/code-block-ac-p2.png&#34;  alt=&#34;Text Completion response, for the settings/options present under a particular section&#34;   /&gt;
+    
+      &lt;figcaption class=&#34;center&#34; &gt;Text Completion response, for the settings/options present under a particular section&lt;/figcaption&gt;
+    
+  &lt;/figure&gt;
+
+
+&lt;p&gt;This gives me nice autocompletion and prevents me from looking up my settings names against my config file every time I want to verify. Also, a nice little idea here is the comments which are prefixed with &amp;ldquo;lis-hint-&amp;quot;.If you wish to have a different filename that does not follow the file URI conventions and still want autocomplete, you can add these little &amp;ldquo;ls-hints&amp;rdquo; to tell the LSP which section to look for.&lt;/p&gt;
+&lt;p&gt;I will add a brief video demo to the project readme, but here ends my long story of how simple typos drove me crazy to create an LSP. Hope you found this article engaging and exciting. If you liked it please do give some clappies, star the GitHub repo be a friend, tell a friend, until then see you in the next installation of &amp;ldquo;Tools, Terminal and TCP&amp;rdquo;&lt;/p&gt;
+&lt;p&gt;Video Demo: &lt;a href=&#34;https://harish876.github.io/forge/cli_demo.mp4&#34;&gt;Link&lt;/a&gt;
+&lt;!-- raw HTML omitted --&gt;
+GitHub Link: &lt;a href=&#34;https://github.com/harish876/forge/&#34;&gt;Forge ETL&lt;/a&gt;&lt;/p&gt;
+</content>
+    </item>
+    
+  </channel>
+</rss>
