@@ -1,8 +1,8 @@
 +++
 author = "Harish Krishnakumar"
 title = "A tale of typos✍️, Tree Sitter🌳, and finally an LSP (Part-2)"
-date = "2019-03-11"
-description = "A tale of typos✍️, Tree Sitter🌳, and finally an LSP (Part-2)."
+date = "2024-06-15"
+description = "In this installment of Tools, Terminal, and TCP, we explore LSP and advanced Tree-Sitter features for efficient parsing, syntax handling, and IntelliSense in config files and more..."
 +++
 
 A few months back I was asked to write an ETL (Extract, Transform, Load) framework at work, where I could run all my ETL jobs uniformly using a single codebase. We covered a simple code-gen CLI for this in the last blog. In this one, we dive deeper into an LSP and Advanced Tree Sitter Features.

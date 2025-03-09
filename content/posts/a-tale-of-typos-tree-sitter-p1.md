@@ -1,8 +1,8 @@
 +++
 author = "Harish Krishnakumar"
 title = "A tale of typos✍️, Tree Sitter🌳, and finally an LSP (Part-1)"
-date = "2019-03-11"
-description = "A tale of typos✍️, Tree Sitter🌳, and finally an LSP (Part-1)."
+date = "2024-06-07"
+description = "In this install of Tools, Terminal and TCP, we build a unified ETL pipeline, explore config-driven code, dive into Tree-Sitter for efficient parsing, and develop a custom LSP alongside a code-gen CLI."
 +++
 
 A few months back I was asked to write an ETL (Extract, Transform, Load) framework at work, where I could run all my ETL jobs uniformly using a single codebase. I wanted to write some Python and this was a great opportunity to do it. Here is a tale of how a brief expedition of Python, and a quest to write config-driven code coupled with numerous typos, led me to tree-sitter, building a code-gen CLI, and a custom LSP.
