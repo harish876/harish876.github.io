@@ -167,7 +167,7 @@ func (d *Disel) execHandler(ctx *Context) error {
 }
 ```
 
-### Implementation -  So what are the othe way?
+### Implementation -  So what are the othe ways?
 Remember we used the `accept` method on a infinite loop and spawn a goroutine for each incoming connection. The `accept` method is blocking in nature i.e synchronous. If there are too many connections then you spawn too many goroutines or (green threads)[https://en.wikipedia.org/wiki/Green_thread]. Your system can only spawn so many threads. Ok, let's say you offset the thread problem by a thread pool.The problem then becomes, when you accept a client connection and there is no activity on that connection. It just sits idle, an idle connection. Hmmm, NodeJS is single threaded, Redis is single threaded, how do they handle so many connections on a single thread? Welcome my friend, Asynchronous IO. 
 
 ### Scary system calls are fun (if not `fsync`) - `epoll`
@@ -181,6 +181,70 @@ This is more efficient because:
 - **`epoll`** reduces unnecessary polling by only waking up workers when there’s real work to do.
 
 This is a gross oversimplification and I would advise to not take deep technical explainations from me. Even I dont completely understand epoll if I were being honest. Please give this a read [epoll](https://copyconstruct.medium.com/the-method-to-epolls-madness-d9d2d6378642)
+
+Here is a piece of C code I will be using for the next install of this blog:
+```C
+void use_epoll(int server_fd) {
+  int epoll_fd = epoll_create1(0); //creates a new epoll instance
+  if (epoll_fd == -1) {
+    perror("epoll_create1");
+    exit(EXIT_FAILURE);
+  }
+
+  struct epoll_event event;
+  event.events = EPOLLIN;
+  event.data.fd = server_fd;
+
+  // Add the server file descriptor (server entry point) to the epoll instance's interest list
+  if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, server_fd, &event) == -1) {
+    perror("epoll_ctl");
+    exit(EXIT_FAILURE);
+  }
+
+  struct epoll_event events[MAX_EVENTS];
+  struct sockaddr_in client_addr;
+  socklen_t client_addr_len;
+
+  while (1) {
+    int n = epoll_wait(epoll_fd, events, MAX_EVENTS, -1); //wait indefinitely for events. This is blocking!
+    if (n == -1) {
+      perror("epoll_wait");
+      break;
+    }
+    for (int i = 0; i < n; i++) {
+      if (events[i].data.fd == server_fd) {
+        client_addr_len = sizeof(client_addr);
+        int conn = accept(server_fd, (struct sockaddr *)&client_addr,
+                          &client_addr_len);
+
+        if (conn == -1) {
+          if ((errno == EAGAIN) || (errno == EWOULDBLOCK)) {
+            break;
+          } else {
+            perror("accept");
+            break;
+          }
+        }
+        set_non_blocking(conn);
+        event.events = EPOLLIN | EPOLLET;
+        event.data.fd = conn;
+
+        /*add the file descriptor created by accept to the epoll intrest list. motion sensor has been installed will notify if a customer arrives on this file descriptor.
+        */
+        if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, conn, &event) == -1) {
+          perror("epoll_ctl");
+          close(conn);
+          continue;
+        }
+      } else {
+        handle_connection(events[i].data.fd); //handle client request
+        close(events[i].data.fd);
+      }
+    }
+  }
+  close(epoll_fd);
+}
+```
 
 
 ### Whats Next?
