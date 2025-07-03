@@ -13,10 +13,7 @@ readingTime = true
 hideComments = false
 +++
 
-
-# Hi, there
-
-Hi I am Harish Krishnakumar. I use neovim btw. I have 2 years of experience working in Software at Byju's and SMC Finance as a Software Engineering intern and a full time respectively. I am currently pursuing my Master's in CS at UC Davis.
+Hi there, I am Harish Krishnakumar. I use neovim btw. I have 2 years of experience working in Software at Byju's and SMC Finance as a Software Engineering intern and a full time respectively. I am currently pursuing my Master's in CS at UC Davis.
 
 As an intern at Byju's I worked on microservices, dealing with the payment system and migrating a batch based archiecture to a queue based one using Apache Kafka.I made a fun little configuration builder to dynamically create rule engines for different payment vendors.
 
