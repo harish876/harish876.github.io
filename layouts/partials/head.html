@@ -69,41 +69,38 @@
 
 <!-- Extended head section-->
 {{ partial "extended_head.html" . }}
-<link id="theme-stylesheet" rel="stylesheet" href="/terminal-dark.css">
 <script>
+(function() {
+  try {
+    var theme = localStorage.getItem('theme-mode');
+    var css = (theme === 'light') ? '/terminal-light.css' : '/terminal-dark.css';
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.id = 'theme-stylesheet';
+    link.href = css;
+    document.head.appendChild(link);
+  } catch(e) {}
+})();
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
   function setTheme(theme) {
     var stylesheet = document.getElementById('theme-stylesheet');
-    var favicon = document.getElementById('favicon');
-    var ogImage = document.getElementById('og-image');
-    var ogMetaImage = document.getElementById('og-meta-image');
-    if (theme === 'light') {
-      stylesheet.href = '/terminal-light.css';
-      localStorage.setItem('theme-mode', 'light');
-      var btn = document.getElementById('header-theme-toggle');
-      if (btn) btn.textContent = '☀️';
-      if (favicon) favicon.href = '/favicon-light.png';
-      if (ogImage) ogImage.href = '/og-image-light.png';
-      if (ogMetaImage) ogMetaImage.content = '/og-image-light.png';
-    } else {
-      stylesheet.href = '/terminal-dark.css';
-      localStorage.setItem('theme-mode', 'dark');
-      var btn = document.getElementById('header-theme-toggle');
-      if (btn) btn.textContent = '🌙';
-      if (favicon) favicon.href = '/favicon.png';
-      if (ogImage) ogImage.href = '/og-image.png';
-      if (ogMetaImage) ogMetaImage.content = '/og-image.png';
+    if (stylesheet) {
+      stylesheet.href = (theme === 'light') ? '/terminal-light.css' : '/terminal-dark.css';
     }
-  }
-  document.addEventListener('DOMContentLoaded', function() {
-    var savedTheme = localStorage.getItem('theme-mode') || 'dark';
-    setTheme(savedTheme);
+    localStorage.setItem('theme-mode', theme);
     var btn = document.getElementById('header-theme-toggle');
-    if (btn) {
-      btn.addEventListener('click', function() {
-        var current = localStorage.getItem('theme-mode') || 'dark';
-        var next = current === 'dark' ? 'light' : 'dark';
-        setTheme(next);
-      });
-    }
-  });
+    if (btn) btn.textContent = theme === 'light' ? '☀️' : '🌙';
+  }
+
+  var btn = document.getElementById('header-theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', function() {
+      var current = localStorage.getItem('theme-mode') || 'dark';
+      var next = current === 'dark' ? 'light' : 'dark';
+      setTheme(next);
+    });
+  }
+});
 </script>
