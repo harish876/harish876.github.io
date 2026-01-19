@@ -1,6 +1,6 @@
 import { HeroASCII } from "@/components/hero";
-import { Metadata } from "next";
 import { getPageBySlug } from "@/lib/pages";
+import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Harish Krishnakumar | Systems, Databases And Observability Engineer",
