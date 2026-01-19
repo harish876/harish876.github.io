@@ -1,6 +1,7 @@
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
 import { Analytics } from "@vercel/analytics/react";
+import type { Metadata } from "next";
 import PlausibleProvider from "next-plausible";
 import { Funnel_Display, Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -20,6 +21,14 @@ const funnelDisplay = Funnel_Display({
   variable: "--font-funnel-display",
   subsets: ["latin"]
 });
+
+export const metadata: Metadata = {
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
+};
 
 export default async function RootLayout({
   children

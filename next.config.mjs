@@ -9,44 +9,18 @@ if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
   await build({ watch: isDev, clean: !isDev });
 }
 
+// Check if we're building for GitHub Pages
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
+const basePath = isGitHubPages && process.env.BASE_PATH ? process.env.BASE_PATH : '';
+
 const nextConfig = withPlausibleProxy()({
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: [
-          {
-            key: "X-Content-Type-Options",
-            value: "nosniff"
-          },
-          {
-            key: "X-Frame-Options",
-            value: "DENY"
-          },
-          {
-            key: "Content-Security-Policy",
-            value:
-              "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' plausible.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' plausible.io vitals.vercel-insights.com; worker-src 'self' blob:; child-src 'self' blob:;"
-          }
-        ]
-      }
-    ];
+  output: 'export',
+  basePath: basePath,
+  images: {
+    unoptimized: true
   },
-  async redirects() {
-    return [
-      {
-        source: "/code",
-        destination: "https://github.com/vortex-data/vortex",
-        permanent: true
-      },
-      {
-        source: "/slack",
-        destination:
-          "https://join.slack.com/t/vortex-data/shared_invite/zt-3i4ian4du-mmm~~g9jdz2U_B0dA8CIEg",
-        permanent: false
-      }
-    ];
-  }
+  // Remove async headers and redirects for static export
+  // GitHub Pages doesn't support Next.js headers/redirects
 });
 
 export default nextConfig;

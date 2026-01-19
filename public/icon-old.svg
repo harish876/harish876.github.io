@@ -1,0 +1,13 @@
+<svg width="240" height="188" viewBox="0 0 240 188" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="vortexGradient" x1="20" y1="50" x2="220" y2="138" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="50%" stop-color="#A5A5A5" />
+      <stop offset="100%" stop-color="#4B4B4B" />
+    </linearGradient>
+  </defs>
+
+  <path d="M20 50V138H50V100H70V138H100V50H70V85H50V50H20Z" fill="url(#vortexGradient)"/>
+
+  <path d="M115 50V138H145V95L180 138H210L170 95L210 50H180L145 90L145 50H115Z" fill="url(#vortexGradient)"/>
+</svg>

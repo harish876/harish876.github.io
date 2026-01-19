@@ -1,0 +1,10 @@
+<svg width="200" height="188" viewBox="0 0 200 188" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="lightVortex" x1="45" y1="94" x2="155" y2="94" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#00D2FF" /> <stop offset="100%" stop-color="#92FE9D" /> </linearGradient>
+  </defs>
+
+  <path d="M45 55V133H53V98H72V133H80V55H72V90H53V55H45Z" fill="url(#lightVortex)"/>
+
+  <path d="M100 55V133H108V96L135 133H146L118 94L146 55H135L108 90V55H100Z" fill="url(#lightVortex)"/>
+</svg>

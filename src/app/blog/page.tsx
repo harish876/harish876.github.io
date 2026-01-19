@@ -4,20 +4,20 @@ import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Blog | Vortex",
+  title: "Blog | Harish Krishnakumar",
   description:
-    "Latest updates and insights from the Vortex team about columnar file formats, performance optimization, and cutting-edge research.",
+    "Blog posts and articles by Harish Krishnakumar about software engineering, systems design, databases, observability, and more.",
   openGraph: {
-    title: "Blog | Vortex",
+    title: "Blog | Harish Krishnakumar",
     description:
-      "Latest updates and insights from the Vortex team about columnar file formats, performance optimization, and cutting-edge research.",
-    siteName: "Vortex",
-    url: "https://vortex.dev/blog",
+      "Blog posts and articles by Harish Krishnakumar about software engineering, systems design, databases, observability, and more.",
+    siteName: "Harish Krishnakumar",
+    url: "https://harish876.github.io/blog",
     type: "website",
     locale: "en_US"
   },
   alternates: {
-    canonical: "https://vortex.dev/blog"
+    canonical: "https://harish876.github.io/blog"
   }
 };
 
@@ -26,14 +26,14 @@ export default function BlogPage() {
 
   return (
     <div className="h-full w-full bg-background text-white">
-      <div className="max-w-5xl mx-auto px-4 py-16">
+      <div className="max-w-6xl mx-auto px-4 py-16">
         <div className="mb-12 flex flex-col lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-4xl md:text-6xl font-funnel font-light text-white mb-4">
               Blog
             </h1>
             <p className="text-grey font-mono text-lg">
-              Updates and insights from the Vortex team
+              Articles and insights on software engineering, systems, and more
             </p>
           </div>
           <div className="lg:w-80 lg:flex-shrink-0 sm:pb-2 sm:mr-1">

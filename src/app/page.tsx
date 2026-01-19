@@ -2,21 +2,21 @@ import { HeroASCII } from "@/components/hero";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Vortex | An extensible, SOTA columnar file format",
-  applicationName: "Vortex",
+  title: "Harish Krishnakumar | Systems, Databases And Observability Engineer",
+  applicationName: "Harish Portfolio",
   description:
-    "Vortex is an extensible, state-of-the-art columnar file format, with associated tools for working with compressed Apache Arrow arrays in-memory, on-disk, and over-the-wire.",
+    "Systems, Databases, and Observability Engineer. Currently pursuing Master's in CS at UC Davis. Working on Apache ResilientDB ecosystem and benchmarking web servers. Passionate about databases, systems programming, and creating meaningful digital experiences.",
   openGraph: {
-    title: "Vortex | An extensible, SOTA columnar file format",
+    title: "Harish Krishnakumar | Systems, Databases And Observability Engineer",
     description:
-      "Vortex is an extensible, state-of-the-art columnar file format, with associated tools for working with compressed Apache Arrow arrays in-memory, on-disk, and over-the-wire.",
-    siteName: "Vortex",
-    url: "https://vortex.dev",
+      "Systems, Databases, and Observability Engineer. Currently pursuing Master's in CS at UC Davis. Working on Apache ResilientDB ecosystem and benchmarking web servers.",
+    siteName: "Harish Krishnakumar",
+    url: "https://harish876.github.io",
     type: "website",
     locale: "en_US"
   },
   alternates: {
-    canonical: "https://vortex.dev"
+    canonical: "https://harish876.github.io"
   }
 };
 

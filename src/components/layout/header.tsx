@@ -1,17 +1,19 @@
 "use client";
 
-import LogoMobile from "@/assets/logo-mobile.svg";
 import Logo from "@/assets/logo.svg";
 import Image from "next/image";
 import NextLink from "next/link";
 import { Link } from "../link";
 
 const NAV = [
-  { href: "https://github.com/vortex-data/vortex", label: "GitHub", external: true },
-  { href: "https://docs.vortex.dev", label: "Docs", external: true },
-  { href: "https://bench.vortex.dev", label: "Bench", external: true },
-  { href: "https://vortex.dev/slack", label: "Slack", external: true },
+  { href: "/", label: "Home", external: false },
+  { href: "/projects", label: "Projects", external: false },
   { href: "/blog", label: "Blog", external: false },
+] as const;
+
+const SOCIALS = [
+  { href: "https://github.com/harish876", label: "GitHub", external: true },
+  { href: "https://www.linkedin.com/in/harish-gokul01/", label: "LinkedIn", external: true },
 ] as const;
 
 export const Header = () => {
@@ -23,17 +25,10 @@ export const Header = () => {
       >
         <Image
           src={Logo}
-          alt="Vortex Logo"
-          width={120}
-          height={44}
-          className="hidden md:block"
-        />
-        <Image
-          src={LogoMobile}
-          alt="Vortex Logo"
-          width={40}
-          height={40}
-          className="block md:hidden w-full h-[40px]"
+          alt="HK Logo"
+          width={200}
+          height={188}
+          className="w-auto h-[40px] md:h-[60px] lg:h-[80px]"
         />
       </NextLink>
 
@@ -49,6 +44,28 @@ export const Header = () => {
             {label}
           </Link>
         ))}
+
+        {/* Socials dropdown */}
+        <div className="group relative">
+          <button className="uppercase text-white font-mono text-base md:text-[18px] font-medium cursor-pointer hover:text-grey transition-colors">
+            Socials
+          </button>
+          <nav className="absolute right-0 mt-3 w-48 rounded-xl border border-white/20 bg-black/90 backdrop-blur p-2 shadow-lg z-50 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+            <ul className="flex flex-col">
+              {SOCIALS.map(({ href, label, external }) => (
+                <li key={href}>
+                  <a
+                    href={href}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className="block w-full px-3 py-2 rounded-lg uppercase text-white font-mono text-sm hover:bg-white/10 transition-colors"
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </nav>
+        </div>
       </div>
 
       {/* Mobile: pure-CSS hamburger (no JS, anchor tags only) */}
@@ -70,6 +87,18 @@ export const Header = () => {
           <nav className="absolute right-0 mt-3 w-48 rounded-xl border border-white/20 bg-black/90 backdrop-blur p-2 shadow-lg z-51">
             <ul className="flex flex-col">
               {NAV.map(({ href, label, external }) => (
+                <li key={href}>
+                  <a
+                    href={href}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className="block w-full px-3 py-2 rounded-lg uppercase text-white font-mono text-sm hover:bg-white/10"
+                  >
+                    {label}
+                  </a>
+                </li>
+              ))}
+              <li className="border-t border-white/10 my-1"></li>
+              {SOCIALS.map(({ href, label, external }) => (
                 <li key={href}>
                   <a
                     href={href}
