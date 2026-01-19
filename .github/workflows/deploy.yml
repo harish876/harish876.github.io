@@ -42,6 +42,7 @@ jobs:
           # If repo IS username.github.io, leave BASE_PATH empty
           # TODO: update this later
           BASE_PATH: "/portfoliov2"
+          NEXT_PUBLIC_BASE_PATH: "/portfoliov2"
 
       - name: Setup Pages
         uses: actions/configure-pages@v4

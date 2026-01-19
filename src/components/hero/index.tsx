@@ -27,7 +27,7 @@ export const HeroASCII = ({ pageBody }: HeroASCIIProps) => {
             <div className="prose prose-invert prose-grey max-w-none">
               {pageBody ? (
                 <div className="text-grey font-sans text-sm md:text-base leading-relaxed">
-                  <MDXRenderer 
+                  <MDXRenderer
                     code={pageBody}
                     components={{
                       a: ({ node, href, children, ...props }: any) => {
