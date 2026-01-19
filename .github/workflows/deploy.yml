@@ -43,20 +43,6 @@ jobs:
           # TODO: update this later
           BASE_PATH: "/portfoliov2"
 
-      - name: Verify and copy public content
-        run: |
-          # Verify public/content exists
-          if [ -d "public/content" ]; then
-            echo "✓ public/content directory exists"
-            # Ensure content directory is copied to out
-            mkdir -p out/content
-            cp -r public/content/* out/content/ || true
-            echo "✓ Copied public/content to out/content"
-            ls -la out/content/ || echo "Warning: out/content might be empty"
-          else
-            echo "⚠ Warning: public/content directory not found"
-          fi
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

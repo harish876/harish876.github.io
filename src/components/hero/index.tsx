@@ -1,25 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
+import { MDXRenderer } from "../MDXRenderer";
 import { ASCIIArt } from "../ascii-art";
 
-export const HeroASCII = () => {
-  const [content, setContent] = useState<string>("");
-  const [loading, setLoading] = useState(true);
+interface HeroASCIIProps {
+  pageBody?: string;
+}
 
-  useEffect(() => {
-    fetch("/content/home.mdx")
-      .then((res) => res.text())
-      .then((text) => {
-        setContent(text);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load content:", err);
-        setLoading(false);
-      });
-  }, []);
+export const HeroASCII = ({ pageBody }: HeroASCIIProps) => {
 
   return (
     <div className="w-full overflow-clip h-[calc(100dvh-96px)] md:h-[calc(100dvh-208px)] lg:h-[calc(100dvh-332px)] relative">
@@ -37,15 +25,12 @@ export const HeroASCII = () => {
             </div>
 
             <div className="prose prose-invert prose-grey max-w-none">
-              {loading ? (
-                <div className="text-grey font-sans text-sm md:text-base">
-                  Loading...
-                </div>
-              ) : content ? (
+              {pageBody ? (
                 <div className="text-grey font-sans text-sm md:text-base leading-relaxed">
-                  <ReactMarkdown
+                  <MDXRenderer 
+                    code={pageBody}
                     components={{
-                      a: ({ node, href, children, ...props }) => {
+                      a: ({ node, href, children, ...props }: any) => {
                         const isExternal = href?.startsWith("http") || href?.startsWith("mailto:");
                         if (isExternal) {
                           return (
@@ -70,15 +55,8 @@ export const HeroASCII = () => {
                           </Link>
                         );
                       },
-                      p: ({ node, children, ...props }) => (
-                        <p className="mb-4" {...props}>
-                          {children}
-                        </p>
-                      ),
                     }}
-                  >
-                    {content}
-                  </ReactMarkdown>
+                  />
                 </div>
               ) : (
                 <div className="text-grey font-sans text-sm md:text-base">

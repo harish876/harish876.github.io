@@ -1,5 +1,6 @@
 import { HeroASCII } from "@/components/hero";
 import { Metadata } from "next";
+import { getPageBySlug } from "@/lib/pages";
 
 export const metadata: Metadata = {
   title: "Harish Krishnakumar | Systems, Databases And Observability Engineer",
@@ -21,9 +22,10 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
+  const page = getPageBySlug("home");
   return (
     <div className="h-full w-full relative overflow-hidden">
-      <HeroASCII />
+      <HeroASCII pageBody={page?.body} />
     </div>
   );
 }

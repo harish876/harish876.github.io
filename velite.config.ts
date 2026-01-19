@@ -30,6 +30,30 @@ const blog = defineCollection({
     }))
 });
 
+const pages = defineCollection({
+  name: "Pages",
+  pattern: "pages/**/*.mdx",
+  schema: s
+    .object({
+      slug: s.path(),
+      body: s.mdx({
+        rehypePlugins: [
+          [
+            rehypePrettyCode,
+            {
+              theme: "night-owl",
+              keepBackground: false
+            }
+          ]
+        ]
+      })
+    })
+    .transform((data) => ({
+      ...data,
+      slugAsParams: data.slug.split("/").slice(1).join("/")
+    }))
+});
+
 export default defineConfig({
   root: "./src/content",
   output: {
@@ -39,5 +63,5 @@ export default defineConfig({
     name: "[name]-[hash:6].[ext]",
     clean: true
   },
-  collections: { blog }
+  collections: { blog, pages }
 });
