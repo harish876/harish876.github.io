@@ -1,5 +1,6 @@
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
+import { getBasePath } from "@/lib/constants";
 import { Analytics } from "@vercel/analytics/react";
 import type { Metadata } from "next";
 import PlausibleProvider from "next-plausible";
@@ -22,11 +23,13 @@ const funnelDisplay = Funnel_Display({
   subsets: ["latin"]
 });
 
+const basePath = getBasePath();
+
 export const metadata: Metadata = {
   icons: {
-    icon: "/icon.svg",
-    shortcut: "/icon.svg",
-    apple: "/icon.svg",
+    icon: `${basePath}/icon.svg`,
+    shortcut: `${basePath}/icon.svg`,
+    apple: `${basePath}/icon.svg`,
   },
 };
 
