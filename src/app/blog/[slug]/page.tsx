@@ -1,4 +1,4 @@
-import { MDXRenderer } from "@/components/MDXRenderer";
+import { BlogContent } from "@/components/blog-content";
 import { getAllSlugs, getPostBySlug } from "@/lib/blog";
 import { Metadata } from "next";
 import Link from "next/link";
@@ -91,23 +91,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         {/* Post content */}
         <article className="dashed-top p-4 md:p-6">
           <div className="w-full max-w-none prose prose-invert prose-grey">
-            <MDXRenderer
-              code={post.body}
-              components={{
-                img: ({ src, alt, ...props }: any) => {
-                  const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
-                  const imageSrc = src?.startsWith("/") ? `${basePath}${src}` : src;
-                  return (
-                    <img
-                      src={imageSrc}
-                      alt={alt}
-                      className="rounded-lg my-4"
-                      {...props}
-                    />
-                  );
-                },
-              }}
-            />
+            <BlogContent code={post.body} />
           </div>
         </article>
       </div>
