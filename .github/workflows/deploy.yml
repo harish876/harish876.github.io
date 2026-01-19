@@ -39,10 +39,9 @@ jobs:
         env:
           VELITE_STARTED: "1"
           GITHUB_PAGES: "true"
-          # If repo IS username.github.io, leave BASE_PATH empty
-          # TODO: update this later
-          BASE_PATH: "/portfoliov2"
-          NEXT_PUBLIC_BASE_PATH: "/portfoliov2"
+          # Repo IS username.github.io, so BASE_PATH is empty
+          BASE_PATH: ""
+          NEXT_PUBLIC_BASE_PATH: ""
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
