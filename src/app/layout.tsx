@@ -24,12 +24,14 @@ const funnelDisplay = Funnel_Display({
 });
 
 const basePath = getBasePath();
+// When basePath is empty, use absolute path; otherwise prefix with basePath
+const iconPath = basePath ? `${basePath}/icon.svg` : "/icon.svg";
 
 export const metadata: Metadata = {
   icons: {
-    icon: `${basePath}/icon.svg`,
-    shortcut: `${basePath}/icon.svg`,
-    apple: `${basePath}/icon.svg`,
+    icon: iconPath,
+    shortcut: iconPath,
+    apple: iconPath,
   },
 };
 

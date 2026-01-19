@@ -15,7 +15,8 @@ const basePath = isGitHubPages && process.env.BASE_PATH ? process.env.BASE_PATH 
 
 const nextConfig = withPlausibleProxy()({
   output: 'export',
-  basePath: basePath,
+  // Only set basePath if it's not empty (Next.js handles empty string differently)
+  ...(basePath && { basePath }),
   images: {
     unoptimized: true
   },
