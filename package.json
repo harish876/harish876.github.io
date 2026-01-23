@@ -8,7 +8,8 @@
     "export": "next build",
     "start": "next start",
     "lint": "next lint",
-    "velite": "node scripts/velite-build.mjs"
+    "velite": "node scripts/velite-build.mjs",
+    "velite:watch": "npx velite dev --watch"
   },
   "dependencies": {
     "@mdx-js/react": "^3.1.1",
@@ -33,6 +34,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "concurrently": "^9.2.1",
     "eslint": "^9.39.1",
     "eslint-config-next": "16.0.7",
     "tailwindcss": "^4.1.17",

@@ -39,7 +39,6 @@ jobs:
         env:
           VELITE_STARTED: "1"
           GITHUB_PAGES: "true"
-          # Repo IS username.github.io, so BASE_PATH is empty
           BASE_PATH: ""
           NEXT_PUBLIC_BASE_PATH: ""
 

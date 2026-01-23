@@ -1,12 +1,13 @@
 import { withPlausibleProxy } from "next-plausible";
 
-// Start Velite automatically with Next.js (recommended approach)
+// Start Velite automatically with Next.js (only for build, not dev)
+// In dev mode, use the separate velite:watch script via npm run dev
 const isDev = process.argv.indexOf("dev") !== -1;
 const isBuild = process.argv.indexOf("build") !== -1;
-if (!process.env.VELITE_STARTED && (isDev || isBuild)) {
+if (!process.env.VELITE_STARTED && isBuild) {
   process.env.VELITE_STARTED = "1";
   const { build } = await import("velite");
-  await build({ watch: isDev, clean: !isDev });
+  await build({ watch: false, clean: true });
 }
 
 // Check if we're building for GitHub Pages
