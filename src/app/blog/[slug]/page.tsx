@@ -23,24 +23,24 @@ export async function generateMetadata({
 
   if (!post) {
     return {
-      title: "Post Not Found | Vortex Blog"
+      title: "Post Not Found | Harish Krishnakumar"
     };
   }
 
   return {
-    title: `${post.title} | Vortex Blog`,
-    description: post.excerpt || `Read "${post.title}" on the Vortex blog`,
+    title: `${post.title} | Harish Krishnakumar`,
+    description: post.excerpt || `Read "${post.title}" on Harish Krishnakumar's blog`,
     openGraph: {
-      title: `${post.title} | Vortex Blog`,
-      description: post.excerpt || `Read "${post.title}" on the Vortex blog`,
-      siteName: "Vortex",
-      url: `https://vortex.dev/blog/${slug}`,
+      title: `${post.title} | Harish Krishnakumar`,
+      description: post.excerpt || `Read "${post.title}" on Harish Krishnakumar's blog`,
+      siteName: "Harish Krishnakumar",
+      url: `https://harish876.github.io/blog/${slug}`,
       type: "article",
       locale: "en_US",
       publishedTime: post.date
     },
     alternates: {
-      canonical: `https://vortex.dev/blog/${slug}`
+      canonical: `https://harish876.github.io/blog/${slug}`
     }
   };
 }

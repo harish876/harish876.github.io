@@ -3,18 +3,18 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "404 | Page not found",
-  applicationName: "Vortex",
+  applicationName: "Harish Krishnakumar",
   description: "404 | Page not found",
   openGraph: {
     title: "404 | Page not found",
     description: "404 | Page not found",
-    siteName: "Vortex",
-    url: "https://vortex.dev",
+    siteName: "Harish Krishnakumar",
+    url: "https://harish876.github.io",
     type: "website",
     locale: "en_US"
   },
   alternates: {
-    canonical: "https://vortex.dev"
+    canonical: "https://harish876.github.io"
   }
 };
 
