@@ -1,0 +1,189 @@
+---
+title: "Long Distance R...DMA (Part 1)"
+authors: ["Harish Krishnakumar"]
+date: "2026-02-04"
+excerpt: "Valentine's Day is around the corner—what better time for Long Distance R...DMA? Can RDMA work between datacenters? I asked myself that and decided to find out. Well, kinda."
+published: true
+---
+
+Valentine's Day is around the corner—what better time to learn about Long Distance R...DMA? RDMA stands for Remote Direct Memory Access, and the first time I found out about it, I thought it was a magical technology that replaces the traditional network stack like TCP and Ethernet. I thought only two computers co-located in a datacenter or a server rack could talk to each other through some hardware magic. Do I still think that? No—I've come a long way. But can RDMA be used for two servers that aren't co-located? Can it work between two datacenters or servers on opposite coasts? What makes this problem interesting? I asked myself the same question and decided to do something about it. Well, kinda. You're in the right place to find out.
+
+## Early Start
+So as all projects go, I had signed up for a Operating Systems for Datacenters class and like always had to figure out a project idea. I had heard about RDMA in the past, but as prefaced I had no clue. Btw fantastic course, If you would like to check out some papers we discussed class - [OS for Datacenters](https://yangzhou1997.github.io/teaching/ecs289d_fall25.html). Some fella called Harish presented this apparently [Design Guidelines for High Performance RDMA](https://yangzhou1997.github.io/teaching/ecs289d_fall25_lecture4_rdma_design.pdf).
+As you can see, I wanted to do something in the space of RDMA and networking, so my teammates and I decided to reimplement the spirit of this paper - [SDR-RDMA: Software-Defined Reliability Architecture for Planetary Scale RDMA Communication](https://arxiv.org/abs/2505.05366). Were we able to implement everything in this paper? No. Were we able to understand the key ideas of this paper and reproduce that. Happy to report - Yes. But before we move on, some background on RDMA.
+
+## Background
+As I say with all things, this is what I understand of RDMA and I acknowledge that I am a toolbox and I maybe wrong. With that preface, RDMA stands for Remote Direct Memory Access. One may ask, why do we need RDMA or other fancy networking technologies when we have TCP/IP, UDP, QUIC, gRPC etc. All these are indeed networking technologies which are used widely in real life applications right, but with 1 caveat. All these follow a similar datapath whereas RDMA follows a different one.
+Zero-Copy Networking is an idea where data being sent out by an application directly goes to the NIC (Network Interface Card) and the receiver NIC is able to receive that send it directly to the application. If you thought that TCP, UDP etc already did this, you are not alone. It turns out there is something called the Operating System Kernel, which likes to eavesdrop on what the application has to say and makes copies of this data. Remember the building an HTTP server from scratch blog. You don't? Really [here](/blog/more-than-one-way-to-build-an-http-server-from-scratch). I will still summarise it. 
+If you look at this code snippet.
+
+```go
+func (d *Disel) handleConnection(conn net.Conn) {
+	for {
+		buf := make([]byte, 1024)
+		recievedBytes, err := conn.Read(buf) // <- Look here. Unsuspecting Data Copy
+		if err == io.EOF || err != nil {
+			d.Log.Debug(err)
+			break
+		}
+		request := buf[:receivedBytes]
+		rawRequest := string(request)
+		parsedRequest := DeserializeRequest(rawRequest)
+		d.Log.Debug("Raw Request is", rawRequest)
+		ctx := &Context{
+			Request: parsedRequest,
+			Ctx:     context.Background(),
+		}
+		err = d.execHandler(ctx)
+		if err != nil {
+			d.Log.Error(err)
+		}
+		sentBytes, err := conn.Write([]byte(ctx.Response.body))
+		if err != nil {
+			d.Log.Debug("Error writing response: ", err.Error())
+		}
+		d.Log.Debug("Sent Bytes to Client: ", sentBytes)
+	}
+}
+```
+
+If you haven't done any zero copy networking stuff, this code snippet is very unsuspecting, some would consider high quality code (I wrote it, can you tell). Jokes aside, you can see that when we read something from the socket, see how we pass in a buffer to **copy** contents into it. So essentially you provide some userspace heap to copy the contents of the socket into. Well turns out the Kernel also makes multiple copies of this, before the data actually reaches you (the application). Multiple copies of the same data are made, when you operate a datacenter with blazingly fast applications, these could slow things down.
+So some very smart people came up with RDMA, where you can directly interact with the NIC - in essence have a very thin layer of software to define semantics and verbs to carry out communication. This means no more copying - you place the data directly in the NIC's memory, and the NIC in turn places the incoming data into your memory. Think of it like a postbox, instead of ripping apart the postbox everytime or attaching a new one, you get nice letters into your existing post box, which you can access - the userspace application.
+
+## Long Distance RDMA
+
+So I can just replace TCP with RDMA and make my applications blazingly fast right. Right? Not so fast, RDMA works with specific NIC's which allow for optimized DMA operations, and these NIC's are often not available in commercial hardware. The secondary aspect of this is, RDMA still needs a medium of transport. 
+
+There are several transport mediums for RDMA:
+
+- **InfiniBand (IB)** - The original RDMA transport, uses dedicated InfiniBand fabric and switches. It's the gold standard for high-performance computing but requires specialized hardware infrastructure.
+
+- **RoCEv2 (RDMA over Converged Ethernet v2)** - Uses UDP over Ethernet, making it more practical for existing datacenter networks. This is what we'll be focusing on.
+
+- **RoCEv1** - The earlier version that uses Ethernet with Priority Flow Control (PFC), less common now.
+
+- **iWARP (Internet Wide Area RDMA Protocol)** - Uses TCP/IP over Ethernet, providing better compatibility but potentially sacrificing some performance benefits.
+
+So this was the lightbulb moment for me, where what we cut out is the kernel as the middleman and not the transport medium itself. If you squint you can see that these are still mediums what we use today. Ethernet is still prevalent and these are still cables at the end of the day. If we want to truly use RoCEv2 for long distances, we realize that cross-WAN Ethernet channels are lossy and require reliability mechanisms - which is exactly the problem we're trying to solve.
+
+## Userspace for Speed
+
+A recurring theme in systems research is the fact that anything that the kernel does can be made faster in threads, whether it be threads, regular networking stack and sometimes reliability. RDMA offers both reliable and unreliable transport modes. In RC (Reliable Connected) RDMA - the hardware offers per packet acks, retransmission, packet ordering and all that jazz akin to TCP. In UC (Unreliable Connected) akin to UDP does not offer reliability, so acks and ordering. Applications can opt to implement this themselves. Think [QUIC](https://dl.acm.org/doi/10.1145/3098822.3098842).
+
+
+## High Level Idea
+
+Lets build a Software Defined Reliability Layer, which uses constructs like retransmissions or erasure coding to ensure reliability. The applications know what the data is and their characteristics is (payload size, communication patterns...), and it can choose to enforce these policies trading off between RTT and bandwidth.
+For a more formal insight read this [paper](https://arxiv.org/abs/2505.05366) - this is an awesome paper.
+
+## Low Level Idea
+
+So let's think a little more about how user defined reliability can be achieved. Some prerequisites are that MTU stands for Maximum Transmission Unit or the Maximum size of a data packet which can be reliabily sent by the NIC. So this in most NIC's are mutliple of 512KB so either 1024KB or 4096KB. So if one were to ensure that a data payload is sent reliabily with UC, then we ensure that each MTU sized packet is sent reliabily. If we look at our data payload as a series of chunks and each chunk being a mutliple of the MTU, then by maintaing a bitmap we can ensure that we have the packets necessary to make a chunk and a chunks necessary to make the whole payload. Pretty simple right?
+
+Here's a small mental model for that:
+
+```text
+Full payload
+┌───────────────────────────────┐
+│      Chunk 0   Chunk 1  ...   │
+└───────────────────────────────┘
+        ▲          ▲
+        │          │
+   ┌────────┐  ┌────────┐
+   │Pk0 ... │  │Pk0 ... │   (MTU-sized packets)
+   └────────┘  └────────┘
+
+Per-chunk bitmap (1 bit per packet):
+Chunk 0: [1 1 0 1]   → one packet missing, ask for retransmit
+Chunk 1: [1 1 1 1]   → chunk complete
+
+Payload bitmap (1 bit per chunk):
+Payload: [1 0 1 ...] → we know exactly which chunks are incomplete
+```
+
+One might ask, well if the data payload is large, wont there be too many packets to handle and then we would need to dedicate CPU cycles to keep track of this. This is where the original paper uses some fancy offloading - the packet processing is offloaded to the hardware using [NVIDIA's data path accelerator](https://docs.nvidia.com/doca/sdk/dpa-subsystem/index.html). We could not learn DPA in 12 weeks, so we just dedicated 1 CPU core to do this.
+
+## Implementation
+
+Alright, so we essentially wanted to implement some elements of this paper and learn RDMA in this process right. Without diving into very granular details, here is our approach.
+
+At its core, our implementation follows a simple client-server pattern. The server listens for incoming RDMA connections and receives data, while the client connects and sends data. Here's a simplified version:
+
+**Client (Sender):**
+
+```cpp
+// Initialize RDMA device and protection domain
+auto device = std::make_shared<rdmapp::device>(0, 1, 3);
+auto pd = std::make_shared<rdmapp::pd>(device);
+auto loop = rdmapp::socket::event_loop::new_loop();
+auto looper = std::thread([loop]() { loop->loop(); });
+
+// Create connector and completion queues
+auto send_cq = std::make_shared<rdmapp::cq>(device, rx_depth);
+auto recv_cq = std::make_shared<rdmapp::cq>(device, rx_depth);
+
+auto connector = std::make_shared<rdmapp::connector>(
+    loop, server_ip, port, pd, recv_cq, send_cq, nullptr, IBV_QPT_RC);
+
+// Pre-registered RDMA buffer
+void* buffer = /* pointer to your data buffer */;
+
+// Async coroutine to send data
+rdmapp::task<void> sender_task = [connector, buffer, buffer_size]() -> rdmapp::task<void> {
+  RDMASender sender(connector, config);
+  co_await sender.send_data(buffer, buffer_size);
+}();
+
+sender_task.detach();
+sender_task.get_future().wait();
+```
+
+**Server (Receiver):**
+
+```cpp
+// Initialize RDMA device and protection domain
+auto device = std::make_shared<rdmapp::device>(0, 1, 3);
+auto pd = std::make_shared<rdmapp::pd>(device);
+auto loop = rdmapp::socket::event_loop::new_loop();
+auto looper = std::thread([loop]() { loop->loop(); });
+
+// Create completion queues and acceptor
+auto send_cq = std::make_shared<rdmapp::cq>(device, rx_depth);
+auto recv_cq = std::make_shared<rdmapp::cq>(device, rx_depth);
+
+auto acceptor = std::make_shared<rdmapp::acceptor>(
+    loop, port, pd, recv_cq, send_cq, nullptr, IBV_QPT_RC); // <- One time operation.
+
+// Async coroutine to receive data
+rdmapp::task<void> receiver_task = [acceptor, recv_cq]() -> rdmapp::task<void> {
+  RDMAReceiver receiver(acceptor, recv_cq, config);
+  co_await receiver.receive_data();
+}();
+
+receiver_task.detach();
+receiver_task.get_future().wait();
+```
+
+The key aspects here are:
+
+1. **Device and Protection Domain**: We initialize the RDMA device and create a protection domain (`pd`) which acts as a security boundary for memory regions.
+
+2. **Completion Queues**: RDMA operations are asynchronous. When you post a work request (like "send this buffer"), the operation completes asynchronously. Completion queues (`cq`) notify you when operations finish.
+
+3. **Async Coroutines**: We use C++20 coroutines (`co_await`) to handle the asynchronous nature of RDMA operations. The `receive_data()` and `send_data()` methods are coroutines that yield control while waiting for RDMA operations to complete.
+
+The actual send/receive logic handles chunking data according to MTU sizes, posting work requests to the completion queues, and polling for completions. But the high-level structure is surprisingly simple - just connect, post work requests, and wait for completions.
+
+
+So at a high level these are our API's. The cool part about all of this is that, the client and receiver can agree on memory addresses and their protection domains (Read Only, Read-Write...) and the hot path just involves writing data to these locations. So an existing application can just use our API's as a shared library and use these methods to send and receive data.
+
+
+## Takeaways
+
+ - We were able to improve our own implementation using some batching and inlining optimizations and achieve a 9.09x increase in send-side throughput and a 6.7x reduction in transfer time.
+
+ - We were able to send a payload of size 2GB between 2 CloudLab nodes located 1900 miles apart. Existing tools capped off at 1GB. This gives us more ammo to optimize our implementation for potentially larger payload applications.
+
+## Conclusion
+
+Personally the low-level implementation details are so interesting that I could do a Part 2 for just that. As simple and elegant as the idea sounds, the implementation involved in-flight packet tracking, adjusting the MTU, some cool RDMA optimizations, CloudLab giving us a tough time, some pretty gnarly scenarios which were difficult to debug and tons of fun. All of this in the next one. Till next time check out the implementation here [SDR RDMA](https://github.com/harish876/rdmapp/tree/harish-fec-work) and shoutout to my partner in crime [Dalton](https://www.linkedin.com/in/daltonrdavis6565/) for being the best person to work with. Find our presentation on this here - [Presentation](https://docs.google.com/presentation/d/15KNFujiZ52mIpRdLIMRa5ByI75z5GA-ulfDSQPBtqRE/edit?usp=sharing).
